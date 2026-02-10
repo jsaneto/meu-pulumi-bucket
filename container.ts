@@ -4,12 +4,16 @@ import * as awsx from "@pulumi/awsx";
 export const createContainerService = () => {
     const cluster = new aws.ecs.Cluster("meu-cluster");
 
-    // Cria o LB com configurações padrão (Internet-facing)
+    // 1. Cria o Grupo de Logs no CloudWatch
+    const logGroup = new aws.cloudwatch.LogGroup("nginx-logs", {
+        retentionInDays: 1, // Importante para sandbox: não acumula lixo
+    });
+
     const alb = new awsx.lb.ApplicationLoadBalancer("lb-fargate", {});
 
     const fargateService = new awsx.ecs.FargateService("servico-nginx", {
         cluster: cluster.arn,
-        desiredCount: 2, // Garante alta disponibilidade (roda 2 containers)
+        desiredCount: 2,
         assignPublicIp: true,
         taskDefinitionArgs: {
             container: {
@@ -20,8 +24,16 @@ export const createContainerService = () => {
                 portMappings: [{
                     containerPort: 80,
                     targetGroup: alb.defaultTargetGroup,
-            }],
-            // Verifica se o container está saudável antes de mandar tráfego
+                }],
+                // 2. Configura o logDriver para enviar logs ao CloudWatch
+                logConfiguration: {
+                    logDriver: "awslogs",
+                    options: {
+                        "awslogs-group": logGroup.name,
+                        "awslogs-region": "us-east-1", // Ajuste para sua região do lab
+                        "awslogs-stream-prefix": "nginx",
+                    },
+                },
                 healthCheck: {
                     command: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"],
                     interval: 30,
