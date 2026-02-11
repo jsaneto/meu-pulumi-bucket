@@ -6,6 +6,7 @@ import { createS3Bucket, createStaticContentBucket, attachBucketPolicy } from ".
 import { createCloudFront } from "./cloudfront";
 import { createContainerService } from "./container";
 import { createDatabase } from "./dynamo";
+import { createApiGateway } from "./apigateway";
 // --- 1. INFRAESTRUTURA DE REDE ---
 const meuSG = network.createSecurityGroup();
 
@@ -53,6 +54,8 @@ const indexHtml = new aws.s3.BucketObjectv2("index-html", {
 const urlContainer = createContainerService();
 const minhaTabela = createDatabase();
 
+const stage = createApiGateway();
+
 // --- EXPORTS (O que aparecerá no seu terminal) ---
 export const loadBalancerUrl = asgResources.lbDns;
 export const cloudFrontUrl = pulumi.interpolate`https://${minhaCDN.domainName}/index.html`;
@@ -61,3 +64,4 @@ export const bucketCdnName = novoBucket.id;
 export const containerUrl = pulumi.interpolate`http://${urlContainer}`;
 export const tableName = minhaTabela.name;
 export const tableArn = minhaTabela.arn;
+export const endpoint = pulumi.interpolate`${stage.invokeUrl}/status`;
