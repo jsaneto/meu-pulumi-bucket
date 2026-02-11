@@ -59,3 +59,5 @@
  ## Getting Help
 
  If you encounter any issues or have suggestions, please open an issue in this repository.
+
+ ![Deploy Status](https://github.com/jsaneto/meu-pulumi-bucket/actions/workflows/deploy.yml/badge.svg)
