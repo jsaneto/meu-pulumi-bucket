@@ -7,6 +7,8 @@ import { createCloudFront } from "./cloudfront";
 import { createContainerService } from "./container";
 import { createDatabase } from "./dynamo";
 import { createApiGateway } from "./apigateway";
+import * as sqs from "./sqs";
+import * as worker from "./lambda";
 // --- 1. INFRAESTRUTURA DE REDE ---
 const meuSG = network.createSecurityGroup();
 
@@ -55,6 +57,10 @@ const urlContainer = createContainerService();
 const minhaTabela = createDatabase();
 
 const stage = createApiGateway();
+
+const minhaFila = sqs.createQueue();
+
+worker.createWorker(minhaTabela, minhaFila);
 
 // --- EXPORTS (O que aparecerá no seu terminal) ---
 export const loadBalancerUrl = asgResources.lbDns;
