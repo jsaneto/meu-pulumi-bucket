@@ -29,7 +29,7 @@ export function createWorker(tabela: aws.dynamodb.Table, fila: aws.sqs.Queue) {
         eventSourceArn: fila.arn,
         functionName: workerLambda.name,
         batchSize: 5,
-    });
+    }, { dependsOn: [workerLambda]});
 
     return workerLambda;
 }
