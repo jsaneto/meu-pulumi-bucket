@@ -2,11 +2,14 @@ name: Deploy Pulumi AWS
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+
+# ESSENCIAL: Permite que o GitHub solicite o token OIDC
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
@@ -23,14 +26,17 @@ jobs:
       - name: Instalar Dependências
         run: npm install
 
+      - name: Configurar Credenciais AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::211125336427:role/oidc_github
+          aws-region: us-east-1
+
       - name: Pulumi Action
         uses: pulumi/actions@v5
         with:
-          # LÓGICA: Se for Pull Request, usa 'preview'. Se for Push na main, usa 'up'.
           command: ${{ github.event_name == 'pull_request' && 'preview' || 'up' }}
           stack-name: jnetoass-org/meu-pulumi/dev
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          # As variáveis AWS_ACCESS_KEY_ID, etc., são injetadas automaticamente pelo step anterior
