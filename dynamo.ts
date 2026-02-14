@@ -28,7 +28,8 @@ export const createDatabase = () => {
         tags: {
             Environment: "Dev",
             Name: "Tabela de Usuarios",
-            Project: "Serverless-SQS-Worker"
+            Project: "Serverless-SQS-Worker",
+            UpdateBy: "PullRequest-Test"
         },
     });
 
