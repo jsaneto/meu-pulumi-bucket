@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [ main ]
 
-# ESSENCIAL: Permite que o GitHub solicite o token OIDC
+# Evita conflitos de concorrência e economiza minutos de execução
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  id-token: write
-  contents: read
+  id-token: write      # Necessário para OIDC AWS
+  contents: read       # Necessário para Checkout
+  pull-requests: write # Necessário para Comentários do Pulumi no PR
 
 jobs:
   deploy:
@@ -22,9 +27,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Instalar Dependências
-        run: npm install
+        run: npm ci # 'npm ci' é mais rápido e seguro que 'install' em CI/CD
 
       - name: Configurar Credenciais AWS via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -37,6 +43,7 @@ jobs:
         with:
           command: ${{ github.event_name == 'pull_request' && 'preview' || 'up' }}
           stack-name: jnetoass-org/meu-pulumi/dev
+          comment-on-pr: true
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          # As variáveis AWS_ACCESS_KEY_ID, etc., são injetadas automaticamente pelo step anterior
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
