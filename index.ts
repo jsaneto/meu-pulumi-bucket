@@ -9,35 +9,40 @@ import { createDatabase } from "./dynamo";
 import { createApiGateway } from "./apigateway";
 import * as sqs from "./sqs";
 import * as worker from "./lambda";
+
 // --- 1. INFRAESTRUTURA DE REDE ---
+// Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
 
 // --- 2. COMPUTAÇÃO (EC2 GRAVITON + SPOT + ASG) ---
+// Cria o cluster de servidores que escalam sozinhos e economizam custo com instâncias Spot.
 const asgResources = autoscaling.createAutoScalingGroup(meuSG.id);
 
 // --- 3. ARMAZENAMENTO (S3) ---
-// Bucket Privado (Versionado)
+// Cria um bucket para arquivos de produção (com versionamento).
 const bucketPrivado = createS3Bucket();
 
-// Novo Bucket para o CloudFront (Conteúdo Estático)
+// Cria um bucket dedicado para hospedar o site estático que será servido pela CDN.
 const novoBucket = createStaticContentBucket();
 
 // --- 4. ENTREGA (CLOUDFRONT) ---
+// Configura a rede de entrega global (CDN) apontando para o bucket estático.
 const minhaCDN = createCloudFront(novoBucket);
 
-// Conecta a segurança entre S3 e CloudFront
+// Aplica a política de segurança que permite que apenas a CDN leia os arquivos do Bucket.
 attachBucketPolicy(novoBucket, minhaCDN.arn);
 
-// --- 5. CONTEÚDO (ARQUIVO DE TESTE CORRIGIDO) ---
+// --- 5. CONTEÚDO (UPLOAD DO FRONTEND) ---
 
-// Extraímos os outputs específicos para garantir que o interpolate foque neles
+// Capturamos os DNS gerados para injetar dinamicamente no HTML.
 const lbDns = asgResources.lbDns;
 const cdnDomain = minhaCDN.domainName;
 
+// Cria o arquivo index.html dentro do bucket S3 automaticamente.
 const indexHtml = new aws.s3.BucketObjectv2("index-html", {
     bucket: novoBucket.id,
     key: "index.html",
-    // Agora o interpolate lida com referências diretas de Output<string>
+    // O 'pulumi.interpolate' resolve as URLs finais da AWS antes de escrever o arquivo.
     content: pulumi.interpolate`
         <html>
             <head><meta charset="UTF-8"></head>
@@ -53,16 +58,25 @@ const indexHtml = new aws.s3.BucketObjectv2("index-html", {
     contentType: "text/html",
 });
 
+// --- 6. SERVIÇOS ADICIONAIS E BACKEND ---
+
+// Sobe o serviço de containers (Nginx) no ECS Fargate.
 const urlContainer = createContainerService();
+
+// Cria o banco de dados NoSQL DynamoDB.
 const minhaTabela = createDatabase();
 
+// Cria o API Gateway com o endpoint de resposta Mock.
 const stage = createApiGateway();
 
+// Cria a fila de mensagens SQS.
 const minhaFila = sqs.createQueue();
 
+// Cria a função Lambda (Worker) que conecta a Fila ao Banco de Dados usando SDK v3.
 worker.createWorker(minhaTabela, minhaFila);
 
-// --- EXPORTS (O que aparecerá no seu terminal) ---
+// --- EXPORTS (O que aparecerá no seu terminal após o 'pulumi up') ---
+// Essas variáveis facilitam o acesso rápido aos recursos criados sem entrar no console AWS.
 export const loadBalancerUrl = asgResources.lbDns;
 export const cloudFrontUrl = pulumi.interpolate`https://${minhaCDN.domainName}/index.html`;
 export const bucketProducaoName = bucketPrivado.id;
