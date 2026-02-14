@@ -17,7 +17,7 @@ export function createWorker(
         role: role.name,
         policyArn: aws.iam.ManagedPolicy.AWSLambdaBasicExecutionRole,
     });
-
+//teste
     // 📜 Permissão mínima para consumir a fila específica
     new aws.iam.RolePolicy("worker-sqs-policy", {
         role: role.id,
