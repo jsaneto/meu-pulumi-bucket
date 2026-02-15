@@ -9,7 +9,7 @@ import { createDatabase } from "./dynamo";
 import { createApiGateway } from "./apigateway";
 import * as sqs from "./sqs";
 import * as worker from "./lambda";
-
+import { createEC2Instance } from "./ec2";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -18,6 +18,7 @@ const meuSG = network.createSecurityGroup();
 // Cria o cluster de servidores que escalam sozinhos e economizam custo com instâncias Spot.
 const asgResources = autoscaling.createAutoScalingGroup(meuSG.id);
 
+const minhaInstancia = createEC2Instance(meuSG.id);
 // --- 3. ARMAZENAMENTO (S3) ---
 // Cria um bucket para arquivos de produção (com versionamento).
 const bucketPrivado = createS3Bucket();
