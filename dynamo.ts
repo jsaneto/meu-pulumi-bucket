@@ -29,7 +29,7 @@ export const createDatabase = () => {
             Environment: "Dev",
             Name: "Tabela de Usuarios",
             Project: "Serverless-SQS-Worker",
-            UpdateBy: "PullRequest-Test"
+            UpdateBy: "PullRequest-Test do vscode"
         },
     });
 
