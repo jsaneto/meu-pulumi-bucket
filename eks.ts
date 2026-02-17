@@ -4,34 +4,35 @@ import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 
 export function createK8sCluster() {
-    // 1. Descoberta Automática da Rede Padrão
+    // 1. Descoberta da VPC padrão
     const defaultVpc = aws.ec2.getVpc({ default: true });
     
-    // Filtramos as sub-redes da VPC padrão
-    const defaultSubnets = defaultVpc.then(vpc => 
+    // 2. Filtramos as sub-redes, mas EXCLUÍMOS a us-east-1e
+    const filteredSubnets = defaultVpc.then(vpc => 
         aws.ec2.getSubnets({ 
-            filters: [{ name: "vpc-id", values: [vpc.id] }] 
+            filters: [
+                { name: "vpc-id", values: [vpc.id] },
+                // Este filtro garante que não pegamos a zona problemática
+                { name: "availability-zone", values: ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"] }
+            ] 
         })
     );
 
-    // 2. Criação do Cluster EKS
+    // 3. Criação do Cluster EKS
     const cluster = new eks.Cluster("meu-cluster-eks", {
-        // Passamos os IDs descobertos dinamicamente
         vpcId: defaultVpc.then(vpc => vpc.id),
-        publicSubnetIds: defaultSubnets.then(s => s.ids),
+        // Usamos apenas as sub-redes filtradas
+        publicSubnetIds: filteredSubnets.then(s => s.ids),
         
-        // Configurações otimizadas para ACG Sandbox
         desiredCapacity: 2,
         minSize: 1,
         maxSize: 2,
         instanceType: "t3.medium", 
         version: "1.29",
-        
-        // O nodeGroup automático usará essas configurações
         nodeAssociatePublicIpAddress: true,
     });
 
-    // 3. Deployment do Nginx (Kubernetes Resource)
+    // --- Restante do código (Deployment e Service) continua igual ---
     const appLabels = { app: "nginx-k8s" };
     const deployment = new k8s.apps.v1.Deployment("nginx-dep", {
         spec: {
@@ -50,7 +51,6 @@ export function createK8sCluster() {
         },
     }, { provider: cluster.provider });
 
-    // 4. Service LoadBalancer para expor o App
     const service = new k8s.core.v1.Service("nginx-svc", {
         spec: {
             type: "LoadBalancer",
@@ -59,12 +59,9 @@ export function createK8sCluster() {
         },
     }, { provider: cluster.provider });
 
-    // 5. Tratamento do endpoint para evitar erros de "undefined" antes do deploy
-    const endpoint = service.status.loadBalancer.ingress[0].hostname;
-
     return {
         clusterName: cluster.eksCluster.name,
         kubeconfig: cluster.kubeconfig,
-        endpoint: endpoint,
+        endpoint: service.status.loadBalancer.ingress[0].hostname,
     };
 }
