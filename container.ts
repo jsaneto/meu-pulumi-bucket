@@ -2,6 +2,7 @@ import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 
 /**
+ * nada
  * Cria um serviço de containers gerenciado (ECS Fargate) com Load Balancer integrado.
  * Utiliza AWSX para simplificar a criação de VPCs, ALBs e definições de tarefas.
  */
