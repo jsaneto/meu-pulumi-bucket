@@ -8,6 +8,7 @@ export function createEBSVolumes(availabilityZone: string = "us-east-1a") {
         availabilityZone: availabilityZone,
         size: 1,
         type: "gp3",
+        encrypted: true,
         tags: { ...commonTags, Name: "SSD-gp3-Standard" },
     });
 /*
