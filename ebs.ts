@@ -10,7 +10,7 @@ export function createEBSVolumes(availabilityZone: string = "us-east-1a") {
         type: "gp3",
         tags: { ...commonTags, Name: "SSD-gp3-Standard" },
     });
-
+/*
     // 2. Provisioned IOPS SSD (io2) - Mínimo 4GB
     const io2 = new aws.ebs.Volume("vol-io2", {
         availabilityZone: availabilityZone,
@@ -35,6 +35,6 @@ export function createEBSVolumes(availabilityZone: string = "us-east-1a") {
         type: "sc1",
         tags: { ...commonTags, Name: "HDD-sc1-Archive" },
     });
-
-    return { gp3, io2, st1, sc1 };
+*/
+    return { gp3};
 }
