@@ -29,7 +29,7 @@ jobs:
       - name: Configurar AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::307926602891:role/oidc_github
+          role-to-assume: arn:aws:iam::514423426532:role/oidc_github
           aws-region: us-east-1
       - name: Pulumi Preview
         uses: pulumi/actions@v5
