@@ -11,6 +11,7 @@ import * as sqs from "./sqs";
 import * as worker from "./lambda";
 import { createEC2Instance } from "./ec2";
 import { createEBSVolumes } from "./ebs";
+import { createSharedFileSystem } from "./efs";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -78,6 +79,8 @@ const minhaFila = sqs.createQueue();
 worker.createWorker(minhaTabela, minhaFila);
 
 const volumes = createEBSVolumes("us-east-1a");
+
+const efsResources = createSharedFileSystem();
 
 // --- EXPORTS (O que aparecerá no seu terminal após o 'pulumi up') ---
 // Essas variáveis facilitam o acesso rápido aos recursos criados sem entrar no console AWS.
