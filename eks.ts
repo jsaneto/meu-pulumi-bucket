@@ -4,7 +4,7 @@ import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 
 export function createK8sCluster() {
-    // 1. Descoberta da VPC e Subnets (seu código original)
+    // 1. VPC e Subnets
     const defaultVpc = aws.ec2.getVpc({ default: true });
     const filteredSubnets = defaultVpc.then(vpc => 
         aws.ec2.getSubnets({ 
@@ -15,16 +15,11 @@ export function createK8sCluster() {
         })
     );
 
-    // 2. Criação do Cluster EKS com suporte a Access Entries
-    // 3. Criação do Cluster EKS
+    // 2. Cluster EKS
     const cluster = new eks.Cluster("meu-cluster-eks", {
         vpcId: defaultVpc.then(vpc => vpc.id),
         publicSubnetIds: filteredSubnets.then(s => s.ids),
-    
-    // CORREÇÃO AQUI: No @pulumi/eks, usamos apenas o modo de autenticação.
-    // O Pulumi EKS por padrão já tenta dar acesso ao criador (seu GitHub OIDC).
-        authenticationMode: "API",
-    
+        authenticationMode: "API", // Modo moderno
         desiredCapacity: 2,
         minSize: 1,
         maxSize: 2,
@@ -33,10 +28,8 @@ export function createK8sCluster() {
         nodeAssociatePublicIpAddress: true,
     });
 
-// 4. PERMISSÃO PARA O USUÁRIO CLOUD_USER (O "Humano" no Console)
-// Aqui usamos o recurso NATIVO da AWS para criar a entrada de acesso
+    // 3. Acesso para você (Cloud Guru) ver no console
     const cloudUserAccess = new aws.eks.AccessEntry("cloud-user-console-access", {
-    // Usamos .eksCluster.name para pegar o nome real do cluster criado pelo componente
         clusterName: cluster.eksCluster.name, 
         principalArn: "arn:aws:iam::741960641592:user/cloud_user",
         type: "STANDARD",
@@ -49,11 +42,44 @@ export function createK8sCluster() {
         accessScope: { type: "cluster" },
     });
 
-    // --- Restante do código (Deployment/Service) ---
-    // ... (mantenha como estava)
+    // --- A CHAVE DO PROBLEMA ESTÁ AQUI EMBAIXO ---
+
+    // 4. Criamos um Provider que usa o kubeconfig do cluster NOVO
+    const k8sProvider = new k8s.Provider("k8s-provider", {
+        kubeconfig: cluster.kubeconfig,
+    });
+
+    // 5. Agora sim, o Nginx usando o provider correto
+    const appLabels = { app: "nginx-k8s" };
+    
+    const deployment = new k8s.apps.v1.Deployment("nginx-dep", {
+        spec: {
+            selector: { matchLabels: appLabels },
+            replicas: 2,
+            template: {
+                metadata: { labels: appLabels },
+                spec: {
+                    containers: [{
+                        name: "nginx",
+                        image: "nginx:latest",
+                        ports: [{ containerPort: 80 }],
+                    }],
+                },
+            },
+        },
+    }, { provider: k8sProvider }); // <--- Se faltar isso, o Nginx não é criado no EKS
+
+    const service = new k8s.core.v1.Service("nginx-svc", {
+        spec: {
+            type: "LoadBalancer",
+            ports: [{ port: 80, targetPort: 80 }],
+            selector: appLabels,
+        },
+    }, { provider: k8sProvider }); // <--- Se faltar isso, o ELB não aparece na AWS
 
     return {
         clusterName: cluster.eksCluster.name,
         kubeconfig: cluster.kubeconfig,
+        endpoint: service.status.loadBalancer.ingress[0].hostname,
     };
 }
