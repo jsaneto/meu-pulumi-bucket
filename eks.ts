@@ -72,7 +72,7 @@ export function createK8sCluster() {
     const service = new k8s.core.v1.Service("nginx-svc", {
         metadata: {
             annotations: {
-                "service.beta.kubernets.io/aws-load-balancer-type": "nlb",
+                "service.beta.kubernetes.io/aws-load-balancer-type": "nlb",
             },
         },
         spec: {
