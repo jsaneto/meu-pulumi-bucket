@@ -24,14 +24,14 @@ export function createK8sCluster() {
         minSize: 1,
         maxSize: 2,
         instanceType: "t3.medium", 
-        version: "1.31",
+        version: "1.32",
         nodeAssociatePublicIpAddress: true,
     });
 
     // 3. Acesso para você (Cloud Guru) ver no console
     const cloudUserAccess = new aws.eks.AccessEntry("cloud-user-console-access", {
         clusterName: cluster.eksCluster.name, 
-        principalArn: "arn:aws:iam::741960641592:user/cloud_user",
+        principalArn: "arn:aws:iam::672929527998:user/cloud_user",
         type: "STANDARD",
     });
 
@@ -70,6 +70,11 @@ export function createK8sCluster() {
     }, { provider: k8sProvider }); // <--- Se faltar isso, o Nginx não é criado no EKS
 
     const service = new k8s.core.v1.Service("nginx-svc", {
+        metadata: {
+            annotations: {
+                "service.beta.kubernets.io/aws-load-balancer-type": "nlb",
+            },
+        },
         spec: {
             type: "LoadBalancer",
             ports: [{ port: 80, targetPort: 80 }],
