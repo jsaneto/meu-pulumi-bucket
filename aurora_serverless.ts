@@ -11,7 +11,7 @@ export const createAuroraServerless = (name: string, securityGroupId: pulumi.Inp
         // Mudança de engine para postgres
         engine: "aurora-postgresql",
         // Versão estável do Aurora PostgreSQL (verificar disponibilidade na região)
-        engineVersion: "15.4", 
+        engineVersion: "15.8", 
         engineMode: "provisioned", 
         databaseName: "aurorapostgres",
         masterUsername: "postgres", // Nome padrão comum no Postgres
