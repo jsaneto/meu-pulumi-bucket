@@ -13,6 +13,8 @@ import { createEC2Instance } from "./ec2";
 import { createEBSVolumes } from "./ebs";
 import { createSharedFileSystem } from "./efs";
 import { createK8sCluster } from "./eks";
+import { createRDSInstance } from "./rds";
+import { memoryUsage } from "process";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -83,7 +85,9 @@ const volumes = createEBSVolumes("us-east-1a");
 
 const efsResources = createSharedFileSystem();
 
-const meuEKS = createK8sCluster();
+//const meuEKS = createK8sCluster();
+
+const myDatabase = createRDSInstance("my-acg-rds", meuSG.id);
 
 // --- EXPORTS (O que aparecerá no seu terminal após o 'pulumi up') ---
 // Essas variáveis facilitam o acesso rápido aos recursos criados sem entrar no console AWS.
@@ -95,3 +99,4 @@ export const containerUrl = pulumi.interpolate`http://${urlContainer}`;
 export const tableName = minhaTabela.name;
 export const tableArn = minhaTabela.arn;
 export const endpoint = pulumi.interpolate`${stage.invokeUrl}/status`;
+export const dbEndpoint = myDatabase.endpoint;
