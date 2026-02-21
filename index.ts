@@ -14,7 +14,7 @@ import { createEBSVolumes } from "./ebs";
 import { createSharedFileSystem } from "./efs";
 import { createK8sCluster } from "./eks";
 import { createRDSInstance } from "./rds";
-import { memoryUsage } from "process";
+import { createAuroraServerless } from "./aurora_serverless";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -88,6 +88,8 @@ const efsResources = createSharedFileSystem();
 //const meuEKS = createK8sCluster();
 
 const myDatabase = createRDSInstance("my-acg-rds", meuSG.id);
+
+const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
 
 // --- EXPORTS (O que aparecerá no seu terminal após o 'pulumi up') ---
 // Essas variáveis facilitam o acesso rápido aos recursos criados sem entrar no console AWS.
