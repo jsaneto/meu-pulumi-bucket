@@ -18,7 +18,7 @@ export const createBeanstalkApp = (bucketName: pulumi.Input<string>, s3Key: stri
     // 3. Ambiente
     const env = new aws.elasticbeanstalk.Environment("acg-env", {
         application: app.name,
-        solutionStackName: "64bit Amazon Linux 2023 v6.1.1 running Node.js 20",
+        solutionStackName: "64bit Amazon Linux 2023 v6.3.0 running Node.js 20",
         version: appVersion.name,
         settings: [
             { namespace: "aws:elasticbeanstalk:environment", name: "EnvironmentType", value: "SingleInstance" },
