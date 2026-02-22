@@ -15,6 +15,7 @@ import { createSharedFileSystem } from "./efs";
 import { createK8sCluster } from "./eks";
 import { createRDSInstance } from "./rds";
 import { createAuroraServerless } from "./aurora_serverless";
+import { createBeanstalkApp } from "./beanstalk";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -88,6 +89,8 @@ const efsResources = createSharedFileSystem();
 //const meuEKS = createK8sCluster();
 
 const myDatabase = createRDSInstance("my-acg-rds", meuSG.id);
+
+const beanstalkUrl = createBeanstalkApp(bucketPrivado.id, "app-v1.zip");
 
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
 
