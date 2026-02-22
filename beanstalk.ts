@@ -22,7 +22,7 @@ export const createBeanstalkApp = (bucketName: pulumi.Input<string>, s3Key: stri
     });
 
     // 3. Ambiente (Environment)
-    const env = new aws.elasticbeanstalk.Environment("acg-env", {
+    const env = new aws.elasticbeanstalk.Environment("acg-env-v2", {
         application: app.name,
         // IMPORTANTE: Nome do stack precisa ser exato. 
         // Se este falhar, use o comando CLI list-available-solution-stacks
