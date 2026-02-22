@@ -89,7 +89,7 @@ const efsResources = createSharedFileSystem();
 
 const myDatabase = createRDSInstance("my-acg-rds", meuSG.id);
 
-const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
+//const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
 
 // --- EXPORTS (O que aparecerá no seu terminal após o 'pulumi up') ---
 // Essas variáveis facilitam o acesso rápido aos recursos criados sem entrar no console AWS.
