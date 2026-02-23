@@ -43,6 +43,12 @@ export const createSecurityGroup = () => {
                 toPort: 5432,
                 cidrBlocks: ["0.0.0.0/0"], 
             },
+            {
+                protocol: "tcp",
+                fromPort: 6379,
+                toPort: 6379,
+                cidrBlocks: ["0.0.0.0/0"], // No ACG, isso facilita o teste
+},
         ],
 
         // --- REGRAS DE SAÍDA (EGRESS) ---
