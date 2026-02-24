@@ -20,6 +20,7 @@ import { createRedisCluster } from "./redis";
 import { createKinesisStream } from "./kinesis";
 import { createFirehoseInfrastructure } from "./firehose";
 import { createAthenaInfrastructure } from "./athena";
+import { createGlueInfrastructure } from "./glue";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -104,6 +105,8 @@ const infra = createFirehoseInfrastructure("meu-projeto-guru");
 
 // 2. Cria o Athena usando o Bucket gerado pelo Firehose
 const athenaInfra = createAthenaInfrastructure("meu-projeto-guru", infra.bucketName);
+
+const glueInfra = createGlueInfrastructure("meu-projeto-guru", infra.bucketName);
 
 
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
