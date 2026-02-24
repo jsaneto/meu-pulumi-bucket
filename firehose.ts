@@ -2,7 +2,7 @@ import * as aws from "@pulumi/aws";
 
 export function createFirehoseInfrastructure(name: string) {
     // 1. Usando s3.Bucket (o substituto recomendado para o BucketV2)
-    const bucket = new aws.s3.Bucket(`${name}-bucket`, {
+    const bucket = new aws.s3.Bucket(`${name}-bucket-jose`, {
         forceDestroy: true, // Garante que o bucket seja apagado mesmo com arquivos dentro
     });
 
