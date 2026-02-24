@@ -18,6 +18,7 @@ import { createAuroraServerless } from "./aurora_serverless";
 import { createBeanstalkApp } from "./beanstalk";
 import { createRedisCluster } from "./redis";
 import { createKinesisStream } from "./kinesis";
+import { createFirehoseInfrastructure } from "./firehose";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -97,6 +98,9 @@ const myDatabase = createRDSInstance("my-acg-rds", meuSG.id);
 const redis = createRedisCluster(meuSG.id);
 
 const analyticsStream = createKinesisStream("telemetria-app-stream");
+
+const infra = createFirehoseInfrastructure("meu-projeto-guru");
+
 
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
 
