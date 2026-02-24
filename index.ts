@@ -101,6 +101,7 @@ const analyticsStream = createKinesisStream("telemetria-app-stream");
 
 const infra = createFirehoseInfrastructure("meu-projeto-guru");
 
+
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
 
 // --- EXPORTS (O que aparecerá no seu terminal após o 'pulumi up') ---
