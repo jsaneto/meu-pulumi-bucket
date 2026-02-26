@@ -23,6 +23,7 @@ import { createAthenaInfrastructure } from "./athena";
 import { createGlueInfrastructure } from "./glue";
 import { createVpc } from "./vpc";
 import { createSubnets } from "./subnets";
+import { createInternetConnectivity } from "./igw";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -114,6 +115,11 @@ const vpc = createVpc();
 const networks = createSubnets({
     vpcId: vpc.id,
     azs: ["us-east-1a", "us-east-1b"] // Passamos a lista aqui
+});
+
+const connectivity = createInternetConnectivity({
+    vpcId: vpc.id,
+    publicSubnetIds: networks.publicSubnets.map(s => s.id)
 });
 
 
