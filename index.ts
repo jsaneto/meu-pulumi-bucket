@@ -113,7 +113,7 @@ const glueInfra = createGlueInfrastructure("meu-projeto-guru", infra.bucketName)
 const vpc = createVpc();
 const networks = createSubnets({
     vpcId: vpc.id,
-    az: "us-east-1a" // Certifique-se que é a mesma região do seu console ACG
+    azs: ["us-east-1a", "us-east-1b"] // Passamos a lista aqui
 });
 
 
