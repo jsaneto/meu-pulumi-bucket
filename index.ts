@@ -119,7 +119,8 @@ const networks = createSubnets({
 
 const connectivity = createInternetConnectivity({
     vpcId: vpc.id,
-    publicSubnetIds: networks.publicSubnets.map(s => s.id)
+    publicSubnetIds: networks.publicSubnets.map(s => s.id),
+    privateSubnetIds: networks.privateSubnets.map(s => s.id)
 });
 
 
