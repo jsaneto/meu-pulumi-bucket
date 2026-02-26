@@ -22,6 +22,7 @@ import { createFirehoseInfrastructure } from "./firehose";
 import { createAthenaInfrastructure } from "./athena";
 import { createGlueInfrastructure } from "./glue";
 import { createVpc } from "./vpc";
+import { createSubnets } from "./subnets";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -110,6 +111,10 @@ const athenaInfra = createAthenaInfrastructure("meu-projeto-guru", infra.bucketN
 const glueInfra = createGlueInfrastructure("meu-projeto-guru", infra.bucketName);
 
 const vpc = createVpc();
+const networks = createSubnets({
+    vpcId: vpc.id,
+    az: "us-east-1a" // Certifique-se que é a mesma região do seu console ACG
+});
 
 
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
