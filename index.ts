@@ -98,7 +98,7 @@ const myDatabase = createRDSInstance("my-acg-rds", meuSG.id);
 
 //const beanstalkUrl = createBeanstalkApp(bucketPrivado.id, "app-v1.zip");
 
-const redis = createRedisCluster(meuSG.id);
+//const redis = createRedisCluster(meuSG.id);
 
 const analyticsStream = createKinesisStream("telemetria-app-stream");
 
