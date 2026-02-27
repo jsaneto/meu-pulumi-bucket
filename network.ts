@@ -1,57 +1,38 @@
 import * as aws from "@pulumi/aws";
 
-/**
- * Cria um Security Group (SG) para controlar o tráfego de rede.
- * Este grupo permite acesso Web, SSH e conexões simultâneas para MySQL e PostgreSQL.
- */
 export const createSecurityGroup = () => {
     const sg = new aws.ec2.SecurityGroup("acesso-web-rds-sg", {
-        description: "Permite SSH, HTTP, MySQL e PostgreSQL de entrada",
+        description: "Permite SSH, HTTP, MySQL, PostgreSQL, Redis e VPC Endpoints",
         
-        // --- REGRAS DE ENTRADA (INGRESS) ---
         ingress: [
-            // Regra para SSH (Acesso ao Terminal)
+            // SSH, HTTP, MySQL, PostgreSQL e Redis (Mantendo seus originais)
+            { protocol: "tcp", fromPort: 22, toPort: 22, cidrBlocks: ["0.0.0.0/0"] },
+            { protocol: "tcp", fromPort: 80, toPort: 80, cidrBlocks: ["0.0.0.0/0"] },
+            { protocol: "tcp", fromPort: 3306, toPort: 3306, cidrBlocks: ["0.0.0.0/0"] },
+            { protocol: "tcp", fromPort: 5432, toPort: 5432, cidrBlocks: ["0.0.0.0/0"] },
+            { protocol: "tcp", fromPort: 6379, toPort: 6379, cidrBlocks: ["0.0.0.0/0"] },
+
+            // --- ADIÇÃO PARA VPC ENDPOINTS (HTTPS) ---
+            // Necessário para Interface Endpoints (Secrets Manager, etc)
             {
                 protocol: "tcp",
-                fromPort: 22,
-                toPort: 22,
+                fromPort: 443,
+                toPort: 443,
                 cidrBlocks: ["0.0.0.0/0"], 
-            },
-            
-            // Regra para HTTP (Acesso Web via porta 80)
-            {
-                protocol: "tcp",
-                fromPort: 80,
-                toPort: 80,
-                cidrBlocks: ["0.0.0.0/0"], 
+                description: "Acesso para VPC Endpoints",
             },
 
-            // Regra para MySQL/Aurora (Porta 3306)
-            // Mantida ativa para o banco que já está em uso
+            // --- ADIÇÃO PARA PEERING (Tráfego Interno) ---
+            // Permite que a VPC Default (geralmente 172.31.0.0/16) fale com esta VPC
             {
-                protocol: "tcp",
-                fromPort: 3306,
-                toPort: 3306,
-                cidrBlocks: ["0.0.0.0/0"], 
+                protocol: "-1", // Todos os protocolos
+                fromPort: 0,
+                toPort: 0,
+                cidrBlocks: ["172.31.0.0/16"], 
+                description: "Aceita todo o tráfego vindo da VPC Default via Peering",
             },
-
-            // Regra para PostgreSQL (Porta 5432)
-            // Nova regra adicionada para suportar o Aurora Serverless v2 PostgreSQL
-            {
-                protocol: "tcp",
-                fromPort: 5432,
-                toPort: 5432,
-                cidrBlocks: ["0.0.0.0/0"], 
-            },
-            {
-                protocol: "tcp",
-                fromPort: 6379,
-                toPort: 6379,
-                cidrBlocks: ["0.0.0.0/0"], // No ACG, isso facilita o teste
-},
         ],
 
-        // --- REGRAS DE SAÍDA (EGRESS) ---
         egress: [
             {
                 protocol: "-1", 
