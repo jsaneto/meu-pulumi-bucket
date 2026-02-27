@@ -137,7 +137,7 @@ const peering = createVpcPeering({
 const endpoints = createVpcEndpoints({
     vpcId: vpc.id,
     region: "us-east-1", 
-    // Injeta a rota do S3 tanto na pública quanto na privada
+    // Injeta a rota do S3 tanto na pública quanto na privada 2
     routeTableIds: [connectivity.publicRouteTableId, connectivity.privateRouteTableId],
     // Para Interface Endpoints, usamos as subnets privadas
     subnetIds: networks.privateSubnets.map(s => s.id),
