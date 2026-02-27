@@ -25,6 +25,7 @@ import { createVpc } from "./vpc";
 import { createSubnets } from "./subnets";
 import { createInternetConnectivity } from "./igw";
 import { createVpcPeering } from "./peering"; // Importe o novo arquivo
+import { createVpcEndpoints } from "./vpc_endpoint";
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -133,9 +134,19 @@ const peering = createVpcPeering({
     ],
 });
 
+const endpoints = createVpcEndpoints({
+    vpcId: vpc.id,
+    region: "us-east-1", 
+    // Injeta a rota do S3 tanto na pública quanto na privada 2
+    routeTableIds: [connectivity.publicRouteTableId, connectivity.privateRouteTableId],
+    // Para Interface Endpoints, usamos as subnets privadas
+    subnetIds: networks.privateSubnets.map(s => s.id),
+    securityGroupId: meuSG.id, // O SG deve permitir tráfego na porta 443
+});
+
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
 
-// --- EXPORTS (O que aparecerá no seu terminal após o 'pulumi up') ---
+// --- EXPORTS (O que aparecerá no seu terminal após o 'pulumi up') ok ---
 // Essas variáveis facilitam o acesso rápido aos recursos criados sem entrar no console AWS.
 export const loadBalancerUrl = asgResources.lbDns;
 export const cloudFrontUrl = pulumi.interpolate`https://${minhaCDN.domainName}/index.html`;
