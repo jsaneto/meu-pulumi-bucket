@@ -24,6 +24,7 @@ import { createGlueInfrastructure } from "./glue";
 import { createVpc } from "./vpc";
 import { createSubnets } from "./subnets";
 import { createInternetConnectivity } from "./igw";
+import { createVpcPeering } from "./peering"; // Importe o novo arquivo
 // --- 1. INFRAESTRUTURA DE REDE ---
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 const meuSG = network.createSecurityGroup();
@@ -123,6 +124,14 @@ const connectivity = createInternetConnectivity({
     privateSubnetIds: networks.privateSubnets.map(s => s.id)
 });
 
+const peering = createVpcPeering({
+    customVpcId: vpc.id,
+    customVpcCidr: "10.0.0.0/16", // O CIDR que você definiu no vpc.ts
+    customRouteTableIds: [
+        connectivity.publicRouteTableId, 
+        connectivity.privateRouteTableId
+    ],
+});
 
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
 
