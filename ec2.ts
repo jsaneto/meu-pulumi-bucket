@@ -46,6 +46,7 @@ export const createEC2Instance = (
     return new aws.ec2.Instance("minha-instancia", {
         ami: ami.then(a => a.id), 
         instanceType: "t3.micro",
+        subnetId: subnetId,
         vpcSecurityGroupIds: [securityGroupId],
         
         // VINCULAÇÃO IMPORTANTE: Conecta a identidade criada acima à máquina
