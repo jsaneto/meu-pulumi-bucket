@@ -38,6 +38,10 @@ const sgDefault = network.createSecurityGroup(defaultVpc.id, "default-vpc");
 const meuSG = sgCustom;
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
 //const meuSG = network.createSecurityGroup();
+const networks = createSubnets({
+    vpcId: vpc.id,
+    azs: ["us-east-1a", "us-east-1b"] // Passamos a lista aqui
+});
 
 // --- 2. COMPUTAÇÃO (EC2 GRAVITON + SPOT + ASG) ---
 // Cria o cluster de servidores que escalam sozinhos e economizam custo com instâncias Spot.
@@ -107,7 +111,11 @@ const efsResources = createSharedFileSystem();
 
 //const meuEKS = createK8sCluster();
 
-const myDatabase = createRDSInstance("my-acg-rds", meuSG.id);
+const myDatabase = createRDSInstance(
+    "my-acg-rds", 
+    meuSG.id, 
+    networks.privateSubnets.map(s => s.id) // Passando as IDs das subnets customizadas
+);
 
 //const beanstalkUrl = createBeanstalkApp(bucketPrivado.id, "app-v1.zip");
 
@@ -121,11 +129,6 @@ const infra = createFirehoseInfrastructure("meu-projeto-guru");
 const athenaInfra = createAthenaInfrastructure("meu-projeto-guru", infra.bucketName);
 
 const glueInfra = createGlueInfrastructure("meu-projeto-guru", infra.bucketName);
-
-const networks = createSubnets({
-    vpcId: vpc.id,
-    azs: ["us-east-1a", "us-east-1b"] // Passamos a lista aqui
-});
 
 const connectivity = createInternetConnectivity({
     vpcId: vpc.id,
