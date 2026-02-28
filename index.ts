@@ -27,8 +27,17 @@ import { createInternetConnectivity } from "./igw";
 import { createVpcPeering } from "./peering"; // Importe o novo arquivo
 import { createVpcEndpoints } from "./vpc_endpoint";
 // --- 1. INFRAESTRUTURA DE REDE ---
+const vpc = createVpc();
+const defaultVpc = aws.ec2.getVpcOutput({ default: true });
+
+// Agora criamos os Security Groups passando os IDs necessários
+// Criamos um para a sua VPC nova e um para a Default (conforme solicitado)
+const sgCustom = network.createSecurityGroup(vpc.id, "custom-vpc");
+const sgDefault = network.createSecurityGroup(defaultVpc.id, "default-vpc");
+
+const meuSG = sgCustom;
 // Cria o firewall (Security Group) que será usado pelas instâncias EC2.
-const meuSG = network.createSecurityGroup();
+//const meuSG = network.createSecurityGroup();
 
 // --- 2. COMPUTAÇÃO (EC2 GRAVITON + SPOT + ASG) ---
 // Cria o cluster de servidores que escalam sozinhos e economizam custo com instâncias Spot.
@@ -113,7 +122,6 @@ const athenaInfra = createAthenaInfrastructure("meu-projeto-guru", infra.bucketN
 
 const glueInfra = createGlueInfrastructure("meu-projeto-guru", infra.bucketName);
 
-const vpc = createVpc();
 const networks = createSubnets({
     vpcId: vpc.id,
     azs: ["us-east-1a", "us-east-1b"] // Passamos a lista aqui
