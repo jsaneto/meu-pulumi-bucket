@@ -7,7 +7,11 @@ import { createLoadBalancer } from "./loadbalancer";
  * Cria um grupo de Auto Scaling (ASG) utilizando instâncias Spot e arquitetura ARM (Graviton).
  * param securityGroupId O ID do Security Group que permitirá tráfego para as instâncias.
  */
-export const createAutoScalingGroup = (securityGroupId: pulumi.Output<string>) => {
+export const createAutoScalingGroup = (
+    securityGroupId: pulumi.Output<string>,
+    vpcId: pulumi.Input<string>,           // <--- Novo
+    subnetIds: pulumi.Input<string[]>      // <--- Novo
+) => {
     
     // 1. VPC e Subnets: Busca a infraestrutura de rede padrão da conta AWS
     const vpc = aws.ec2.getVpc({ default: true });
@@ -24,8 +28,8 @@ export const createAutoScalingGroup = (securityGroupId: pulumi.Output<string>) =
 
     // 2. Load Balancer: Instancia o balanceador de carga que distribuirá o tráfego entre as instâncias do ASG
     const lb = createLoadBalancer(
-        vpc.then(v => v.id), 
-        subnets.then(s => s.ids), 
+        vpcId, 
+        subnetIds, 
         securityGroupId
     );
 
@@ -68,7 +72,7 @@ echo "<h1>Servidor Graviton Spot: $(hostname)</h1>" > /var/www/html/index.html`;
         maxSize: asgMax,
         minSize: asgMin,
         desiredCapacity: asgMin,
-        vpcZoneIdentifiers: subnets.then(s => s.ids), 
+        vpcZoneIdentifiers: subnetIds, 
         targetGroupArns: [lb.targetGroupArn], // Conecta o ASG ao Target Group do Load Balancer
         healthCheckType: "ELB", // Usa o Health Check do Load Balancer para saber se a instância está saudável
         healthCheckGracePeriod: 300, // Aguarda 5 minutos antes de verificar a saúde (tempo de boot)
