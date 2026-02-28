@@ -45,9 +45,16 @@ const networks = createSubnets({
 
 // --- 2. COMPUTAÇÃO (EC2 GRAVITON + SPOT + ASG) ---
 // Cria o cluster de servidores que escalam sozinhos e economizam custo com instâncias Spot.
-const asgResources = autoscaling.createAutoScalingGroup(meuSG.id);
+const asgResources = autoscaling.createAutoScalingGroup(
+    meuSG.id,
+    vpc.id,                                     // ID da sua VPC custom
+    pulumi.all(networks.publicSubnets.map(s => s.id))       // Subnets da sua VPC custom
+);
 
-const minhaInstancia = createEC2Instance(meuSG.id);
+const minhaInstancia = createEC2Instance(
+    meuSG.id, 
+    networks.publicSubnets[0].id // <--- Passando a primeira subnet pública da sua VPC
+);
 // --- 3. ARMAZENAMENTO (S3) ---
 // Cria um bucket para arquivos de produção (com versionamento).
 const bucketPrivado = createS3Bucket();

@@ -1,7 +1,10 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 
-export const createEC2Instance = (securityGroupId: pulumi.Output<string>) => {
+export const createEC2Instance = (
+    securityGroupId: pulumi.Output<string>, 
+    subnetId: pulumi.Input<string> // <--- Novo parâmetro
+) => {
     
     // 1. Criamos a Role (Regra) do IAM para a EC2
     // Isso define que o serviço EC2 pode "assumir" esta identidade.
