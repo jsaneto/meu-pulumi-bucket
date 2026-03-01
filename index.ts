@@ -28,6 +28,7 @@ import { createVpcPeering } from "./peering"; // Importe o novo arquivo
 import { createVpcEndpoints } from "./vpc_endpoint";
 import { createNotificationSystem } from "./sns";
 import { createDatabaseSecret, enableRotation } from "./secret";
+import { createObservabilityStack } from "./observability";
 // --- 1. INFRAESTRUTURA DE REDE ---
 const vpc = createVpc();
 const defaultVpc = aws.ec2.getVpcOutput({ default: true });
@@ -169,6 +170,13 @@ const endpoints = createVpcEndpoints({
     // Para Interface Endpoints, usamos as subnets privadas
     subnetIds: networks.privateSubnets.map(s => s.id),
     securityGroupId: meuSG.id, // O SG deve permitir tráfego na porta 443
+});
+
+createObservabilityStack({
+    dbInstanceId: myDatabase.id,
+    sqsQueueName: minhaFila.name,
+    snsTopicArn: meuTopicoSns.arn,
+    asgName: asgResources.asg.name, // Certifique-se que o módulo ASG retorna 'asgName'
 });
 
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
