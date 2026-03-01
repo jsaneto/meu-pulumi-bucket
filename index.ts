@@ -131,7 +131,7 @@ const myDatabase = createRDSInstance(
     dbPassword.result 
 );
 
-const rotation = enableRotation(dbSecret.id);
+//const rotation = enableRotation(dbSecret.id);
 
 //const beanstalkUrl = createBeanstalkApp(bucketPrivado.id, "app-v1.zip");
 
