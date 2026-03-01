@@ -4,9 +4,10 @@ import * as pulumi from "@pulumi/pulumi";
 export const createRDSInstance = (
     name: string, 
     securityGroupId: pulumi.Input<string>,
-    subnetIds: pulumi.Input<string>[] // <--- Adicione este parâmetro
+    subnetIds: pulumi.Input<string>[],
+    dbPassword: pulumi.Input<string> // <--- 1. NOVO PARÂMETRO
 ) => {
-    // Criamos o grupo de subnets para forçar o RDS a ficar na sua VPC Custom
+    // Criamos o grupo de subnets para o RDS
     const dbSubnetGroup = new aws.rds.SubnetGroup(`${name}-subnet-group`, {
         subnetIds: subnetIds,
         tags: { Name: "My DB Subnet Group" },
@@ -15,17 +16,18 @@ export const createRDSInstance = (
     const db = new aws.rds.Instance(name, {
         instanceClass: "db.t3.micro",
         allocatedStorage: 20,
-        engine: "mysql",
-        engineVersion: "8.0",
+        engine: "postgres",       // Mudei para postgres para combinar com o Secret
+        engineVersion: "15.4",    // Versão estável do Postgres
         dbName: "acgdb",
-        username: "admin",
-        password: "password123",
-        
-        // VINCULANDO À REDE CORRETA:
+        username: "admin_user",   // Deve ser o mesmo que você colocou no Secret
+        password: dbPassword,     // <--- 2. USA A SENHA DO SECRETS MANAGER
+
         dbSubnetGroupName: dbSubnetGroup.name, 
         vpcSecurityGroupIds: [securityGroupId],
         
-        publiclyAccessible: true, // Nota: Para ser público, as subnets em 'subnetIds' devem ser públicas
+        // DICA DE ARQUITETURA:
+        // Em um ambiente real, deixamos isso como 'false' e acessamos via Bastion ou VPN.
+        publiclyAccessible: true, 
         skipFinalSnapshot: true,
         deleteAutomatedBackups: true,
     });

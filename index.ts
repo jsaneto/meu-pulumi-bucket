@@ -26,6 +26,8 @@ import { createSubnets } from "./subnets";
 import { createInternetConnectivity } from "./igw";
 import { createVpcPeering } from "./peering"; // Importe o novo arquivo
 import { createVpcEndpoints } from "./vpc_endpoint";
+import { createNotificationSystem } from "./sns";
+import { createDatabaseSecret, enableRotation } from "./secret";
 // --- 1. INFRAESTRUTURA DE REDE ---
 const vpc = createVpc();
 const defaultVpc = aws.ec2.getVpcOutput({ default: true });
@@ -42,6 +44,8 @@ const networks = createSubnets({
     vpcId: vpc.id,
     azs: ["us-east-1a", "us-east-1b"] // Passamos a lista aqui
 });
+
+const { dbSecret, dbPassword } = createDatabaseSecret();
 
 // --- 2. COMPUTAÇÃO (EC2 GRAVITON + SPOT + ASG) ---
 // Cria o cluster de servidores que escalam sozinhos e economizam custo com instâncias Spot.
@@ -109,6 +113,8 @@ const stage = createApiGateway();
 // Cria a fila de mensagens SQS.
 const minhaFila = sqs.createQueue();
 
+const meuTopicoSns = createNotificationSystem(minhaFila.arn);
+
 // Cria a função Lambda (Worker) que conecta a Fila ao Banco de Dados usando SDK v3.
 worker.createWorker(minhaTabela, minhaFila);
 
@@ -121,8 +127,11 @@ const efsResources = createSharedFileSystem();
 const myDatabase = createRDSInstance(
     "my-acg-rds", 
     meuSG.id, 
-    networks.privateSubnets.map(s => s.id) // Passando as IDs das subnets customizadas
+    networks.privateSubnets.map(s => s.id),
+    dbPassword.result 
 );
+
+const rotation = enableRotation(dbSecret.id);
 
 //const beanstalkUrl = createBeanstalkApp(bucketPrivado.id, "app-v1.zip");
 
