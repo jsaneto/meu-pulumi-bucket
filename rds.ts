@@ -17,7 +17,7 @@ export const createRDSInstance = (
         instanceClass: "db.t3.micro",
         allocatedStorage: 20,
         engine: "postgres",       // Mudei para postgres para combinar com o Secret
-        engineVersion: "15.4",    // Versão estável do Postgres
+        engineVersion: "18.3",    // Versão estável do Postgres
         dbName: "acgdb",
         username: "admin_user",   // Deve ser o mesmo que você colocou no Secret
         password: dbPassword,     // <--- 2. USA A SENHA DO SECRETS MANAGER
