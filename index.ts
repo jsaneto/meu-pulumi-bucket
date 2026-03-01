@@ -29,6 +29,7 @@ import { createVpcEndpoints } from "./vpc_endpoint";
 import { createNotificationSystem } from "./sns";
 import { createDatabaseSecret, enableRotation } from "./secret";
 import { createObservabilityStack } from "./observability";
+import { createWaf } from "./waf";
 // --- 1. INFRAESTRUTURA DE REDE ---
 const vpc = createVpc();
 const defaultVpc = aws.ec2.getVpcOutput({ default: true });
@@ -178,6 +179,8 @@ createObservabilityStack({
     snsTopicArn: meuTopicoSns.arn,
     asgName: asgResources.asg.name, // Certifique-se que o módulo ASG retorna 'asgName'
 });
+
+const meuWaf = createWaf(asgResources.lbArn);
 
 //const myAurora = createAuroraServerless("lab-serverless", meuSG.id);
 
