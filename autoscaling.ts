@@ -137,5 +137,6 @@ echo "<h1>Servidor Graviton Spot: $(hostname)</h1>" > /var/www/html/index.html`;
         asg: asg,
         lbDns: lb.albDnsName,
         lbArn: lb.albArn, // Exporta o DNS do Load Balancer para acesso externo
+        lbZoneId: lb.albZoneId,
     };
 };

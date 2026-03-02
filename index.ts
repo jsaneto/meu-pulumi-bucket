@@ -30,6 +30,7 @@ import { createNotificationSystem } from "./sns";
 import { createDatabaseSecret, enableRotation } from "./secret";
 import { createObservabilityStack } from "./observability";
 import { createWaf } from "./waf";
+import { createPrivateDns } from "./route53";
 // --- 1. INFRAESTRUTURA DE REDE ---
 const vpc = createVpc();
 const defaultVpc = aws.ec2.getVpcOutput({ default: true });
@@ -56,7 +57,11 @@ const asgResources = autoscaling.createAutoScalingGroup(
     vpc.id,                                     // ID da sua VPC custom
     pulumi.all(networks.publicSubnets.map(s => s.id))       // Subnets da sua VPC custom
 );
-
+const dnsPrivado = createPrivateDns(
+    vpc.id, 
+    asgResources.lbDns, 
+    asgResources.lbZoneId // Certifique-se que o módulo autoscaling retorna isso!
+);
 const minhaInstancia = createEC2Instance(
     meuSG.id, 
     networks.publicSubnets[0].id // <--- Passando a primeira subnet pública da sua VPC

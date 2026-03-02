@@ -57,5 +57,6 @@ export const createLoadBalancer = (
         targetGroupArn: targetGroup.arn,
         albDnsName: alb.dnsName, // Este é o endereço (URL) que você usará no navegador
         albArn: alb.arn,
+        albZoneId: alb.zoneId,
     };
 };
