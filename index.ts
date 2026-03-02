@@ -179,7 +179,7 @@ const endpoints = createVpcEndpoints({
 });
 
 createObservabilityStack({
-    dbInstanceId: myDatabase.id,
+    dbInstanceId: myDatabase.primary.id,
     sqsQueueName: minhaFila.name,
     snsTopicArn: meuTopicoSns.arn,
     asgName: asgResources.asg.name, // Certifique-se que o módulo ASG retorna 'asgName'
@@ -199,4 +199,4 @@ export const containerUrl = pulumi.interpolate`http://${urlContainer}`;
 export const tableName = minhaTabela.name;
 export const tableArn = minhaTabela.arn;
 export const endpoint = pulumi.interpolate`${stage.invokeUrl}/status`;
-export const dbEndpoint = myDatabase.endpoint;
+export const dbEndpoint = myDatabase.primary.endpoint;
