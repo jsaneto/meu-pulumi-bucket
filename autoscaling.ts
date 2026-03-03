@@ -2,94 +2,93 @@ import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import { ec2ASG1Type, ec2Architecture, asgMin, asgMax, cpuThreshold } from "./variables";
 import { createLoadBalancer } from "./loadbalancer";
+import { setupSSMCloudWatchAgent } from "./ssm"; // Importando o novo arquivo
 
-/**
- * Cria um grupo de Auto Scaling (ASG) utilizando instâncias Spot e arquitetura ARM (Graviton).
- * param securityGroupId O ID do Security Group que permitirá tráfego para as instâncias.
- */
 export const createAutoScalingGroup = (
     securityGroupId: pulumi.Output<string>,
-    vpcId: pulumi.Input<string>,           // <--- Novo
-    subnetIds: pulumi.Input<string[]>      // <--- Novo
+    vpcId: pulumi.Input<string>,
+    subnetIds: pulumi.Input<string[]>
 ) => {
-    
-    // 1. VPC e Subnets: Busca a infraestrutura de rede padrão da conta AWS
-    const vpc = aws.ec2.getVpc({ default: true });
-    const subnets = vpc.then(v => aws.ec2.getSubnets({
-        filters: [
-            { name: "vpc-id", values: [v.id] },
-            { 
-                // Filtra subnets em zonas específicas para garantir alta disponibilidade
-                name: "availability-zone", 
-                values: ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"] 
-            }
-        ],
-    }));
 
-    // 2. Load Balancer: Instancia o balanceador de carga que distribuirá o tráfego entre as instâncias do ASG
-    const lb = createLoadBalancer(
-        vpcId, 
-        subnetIds, 
-        securityGroupId
-    );
+    // --- CONFIGURAÇÃO DE PERMISSÕES (IAM) ---
+    // Essencial para o SSM e CloudWatch Agent funcionarem
+    const role = new aws.iam.Role("asg-ssm-role", {
+        assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({ Service: "ec2.amazonaws.com" }),
+    });
 
-    // 3. AMI (Amazon Machine Image): Busca a imagem mais recente do Ubuntu 22.04 para a arquitetura definida (arm64)
+    // Permite que a instância se comunique com o Systems Manager (SSM)
+    new aws.iam.RolePolicyAttachment("ssm-managed-instance", {
+        role: role.name,
+        policyArn: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    });
+
+    // Permite que a instância envie métricas para o CloudWatch
+    new aws.iam.RolePolicyAttachment("cw-agent-policy", {
+        role: role.name,
+        policyArn: "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+    });
+
+    const instanceProfile = new aws.iam.InstanceProfile("asg-instance-profile", {
+        role: role.name,
+    });
+
+    // --- INFRAESTRUTURA EXISTENTE ---
+
     const ami = aws.ec2.getAmi({
         filters: [{ 
             name: "name", 
             values: [`ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-${ec2Architecture}-server-*`] 
         }],
-        owners: ["099720109477"], // Owner ID oficial da Canonical (Ubuntu)
+        owners: ["099720109477"],
         mostRecent: true,
     });
 
-    // 4. User Data: Script de inicialização que instala o Apache e configura uma página inicial simples
+    const lb = createLoadBalancer(vpcId, subnetIds, securityGroupId);
+
     const userData = `#!/bin/bash
 sudo apt-get update
 sudo apt-get install -y apache2
 sudo systemctl start apache2
 sudo systemctl enable apache2
-echo "<h1>Servidor Graviton Spot: $(hostname)</h1>" > /var/www/html/index.html`;
+echo "<h1>Servidor Graviton Spot com CloudWatch Agent: $(hostname)</h1>" > /var/www/html/index.html`;
 
-    // 5. Launch Template: O "molde" que define as configurações das instâncias que o ASG vai criar
+    // 5. Launch Template (Atualizado com iamInstanceProfile)
     const launchTemplate = new aws.ec2.LaunchTemplate("asg-template", {
         namePrefix: "asg-template-",
         imageId: ami.then(a => a.id),
         instanceType: ec2ASG1Type,
+        iamInstanceProfile: { arn: instanceProfile.arn }, // <--- OBRIGATÓRIO PARA SSM
         vpcSecurityGroupIds: [securityGroupId],
-        userData: Buffer.from(userData).toString("base64"), // O User Data precisa ser enviado em Base64
+        userData: Buffer.from(userData).toString("base64"),
         tagSpecifications: [{
             resourceType: "instance",
             tags: { 
                 Name: "ASG-Node-Spot",
-                Project: "Graviton-Spot-Cluster"
+                Project: "Graviton-Spot-Cluster" // Tag usada pelo SSM para filtrar alvos
             },
         }],
     });
 
-    // 6. Auto Scaling Group: Gerencia o ciclo de vida das instâncias (criação, substituição e escala)
+    // 6. Auto Scaling Group
     const asg = new aws.autoscaling.Group("meu-asg", {
         maxSize: asgMax,
         minSize: asgMin,
         desiredCapacity: asgMin,
         vpcZoneIdentifiers: subnetIds, 
-        targetGroupArns: [lb.targetGroupArn], // Conecta o ASG ao Target Group do Load Balancer
-        healthCheckType: "ELB", // Usa o Health Check do Load Balancer para saber se a instância está saudável
-        healthCheckGracePeriod: 300, // Aguarda 5 minutos antes de verificar a saúde (tempo de boot)
-
-        // Mixed Instances Policy: Permite misturar diferentes tipos de instâncias e focar em Spot
+        targetGroupArns: [lb.targetGroupArn],
+        healthCheckType: "ELB",
+        healthCheckGracePeriod: 300,
         mixedInstancesPolicy: {
             instancesDistribution: {
-                onDemandBaseCapacity: 0, // 0 instâncias On-Demand fixas
-                onDemandPercentageAboveBaseCapacity: 0, // 100% das instâncias extras serão Spot
-                spotAllocationStrategy: "capacity-optimized", // Escolhe o pool Spot com menor chance de interrupção
+                onDemandBaseCapacity: 0,
+                onDemandPercentageAboveBaseCapacity: 0,
+                spotAllocationStrategy: "capacity-optimized",
             },
             launchTemplate: {
                 launchTemplateSpecification: {
                     launchTemplateId: launchTemplate.id,
                     version: "$Latest",
                 },
-                // Overrides: Lista de instâncias compatíveis para aumentar a disponibilidade Spot
                 overrides: [
                     { instanceType: "t4g.medium" },
                     { instanceType: "t4g.small" },
@@ -99,34 +98,38 @@ echo "<h1>Servidor Graviton Spot: $(hostname)</h1>" > /var/www/html/index.html`;
         },
     });
 
-    // --- AGENDAMENTO DE HORÁRIOS (ECONOMIA DE CUSTO) ---
+    // --- ATIVAÇÃO DO CLOUDWATCH AGENT VIA SSM ---
+    // Chamamos a função do arquivo ssm.ts passando as tags configuradas no Launch Template
+    setupSSMCloudWatchAgent({
+        projectName: "Project",
+        projectValue: "Graviton-Spot-Cluster"
+    });
 
-    // Ação Agendada para Ligar: Seg-Sex às 09:00 BRT (12:00 UTC)
+    // --- POLÍTICAS E AGENDAMENTOS ---
+
     new aws.autoscaling.Schedule("start-workday", {
         scheduledActionName: "start-workday",
         minSize: asgMin,
         maxSize: asgMax,
         desiredCapacity: asgMin,
-        recurrence: "0 12 * * 1-5", // Formato Cron: Minuto Hora Dia Mês Dia-da-Semana
+        recurrence: "0 12 * * 1-5",
         autoscalingGroupName: asg.name,
     });
 
-    // Ação Agendada para Desligar: Seg-Sex às 22:00 BRT (01:00 UTC do dia seguinte)
     new aws.autoscaling.Schedule("end-workday", {
         scheduledActionName: "end-workday",
         minSize: 0,
         maxSize: 0,
-        desiredCapacity: 0, // Reduz para zero para economizar durante a madrugada
+        desiredCapacity: 0,
         recurrence: "0 1 * * 2-6", 
         autoscalingGroupName: asg.name,
     });
 
-    // 7. Política de Escalabilidade: Escala automaticamente baseada no uso real de CPU
     new aws.autoscaling.Policy("cpu-scaling-policy", {
         autoscalingGroupName: asg.name,
-        policyType: "TargetTrackingScaling", // Tenta manter a métrica em um valor alvo
+        policyType: "TargetTrackingScaling",
         targetTrackingConfiguration: {
-            targetValue: cpuThreshold, // Valor alvo (ex: 50% de CPU)
+            targetValue: cpuThreshold,
             predefinedMetricSpecification: {
                 predefinedMetricType: "ASGAverageCPUUtilization",
             },
@@ -136,7 +139,7 @@ echo "<h1>Servidor Graviton Spot: $(hostname)</h1>" > /var/www/html/index.html`;
     return {
         asg: asg,
         lbDns: lb.albDnsName,
-        lbArn: lb.albArn, // Exporta o DNS do Load Balancer para acesso externo
+        lbArn: lb.albArn,
         lbZoneId: lb.albZoneId,
     };
 };

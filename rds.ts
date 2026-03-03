@@ -5,44 +5,32 @@ export const createRDSInstance = (
     name: string, 
     securityGroupId: pulumi.Input<string>,
     subnetIds: pulumi.Input<string>[],
-    dbPassword: pulumi.Input<string>
+    dbPassword: pulumi.Input<string> // <--- 1. NOVO PARÂMETRO
 ) => {
-    // 1. Grupo de Subnets (Compartilhado entre as instâncias)
+    // Criamos o grupo de subnets para o RDS
     const dbSubnetGroup = new aws.rds.SubnetGroup(`${name}-subnet-group`, {
         subnetIds: subnetIds,
         tags: { Name: "My DB Subnet Group" },
     });
 
-    // 2. Instância PRIMÁRIA (Escrita e Leitura)
-    const dbPrimary = new aws.rds.Instance(name, {
+    const db = new aws.rds.Instance(name, {
         instanceClass: "db.t3.micro",
         allocatedStorage: 20,
-        engine: "postgres",
-        engineVersion: "18.3", // Corrigido para uma versão disponível (18 ainda não existe no RDS)
+        engine: "postgres",       // Mudei para postgres para combinar com o Secret
+        engineVersion: "18.3",    // Versão estável do Postgres
         dbName: "acgdb",
-        username: "admin_user",
-        password: dbPassword,
+        username: "admin_user",   // Deve ser o mesmo que você colocou no Secret
+        password: dbPassword,     // <--- 2. USA A SENHA DO SECRETS MANAGER
+
         dbSubnetGroupName: dbSubnetGroup.name, 
         vpcSecurityGroupIds: [securityGroupId],
+        
+        // DICA DE ARQUITETURA:
+        // Em um ambiente real, deixamos isso como 'false' e acessamos via Bastion ou VPN.
         publiclyAccessible: true, 
         skipFinalSnapshot: true,
-        // IMPORTANTE: Para ter réplicas, o backup automático deve estar ATIVO ( > 0 )
-        backupRetentionPeriod: 7, 
+        deleteAutomatedBackups: true,
     });
 
-    // 3. READ REPLICA (Apenas Leitura)
-    // DICA: Geralmente colocamos a réplica em uma AZ diferente para resiliência
-    const dbReplica = new aws.rds.Instance(`${name}-replica`, {
-        replicateSourceDb: dbPrimary.id, // O segredo está aqui: conecta à primária
-        instanceClass: "db.t3.micro",   // Pode ser diferente da primária se quiser economizar
-        publiclyAccessible: true,
-        vpcSecurityGroupIds: [securityGroupId],
-        skipFinalSnapshot: true,
-        parameterGroupName: "default.postgres18", // Deve ser compatível com a primária
-    }, { dependsOn: [dbPrimary] }); // Garante que a primária suba primeiro
-
-    return {
-        primary: dbPrimary,
-        replica: dbReplica
-    };
+    return db;
 };
